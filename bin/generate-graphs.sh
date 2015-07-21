@@ -110,6 +110,7 @@ function graph_experiment() {
       *omega-sequence-numbers-all-or-nothing*)  sim=omega-sequence-numbers-all-or-nothing;;
       *monolithic*)                             sim=monolithic;;
       *mesos*)                                  sim=mesos;;
+      *spark*)                                  sim=spark;;
       *)                                        echo "Unknown simulator type, in ${filename} exiting."
                                                 exit 1
     esac
@@ -156,7 +157,7 @@ echo capturing: ls $input_dir|grep protobuf
 ls $input_dir|grep protobuf
 for curr_filename in `ls $input_dir|grep protobuf`; do
   PROTO_LIST+=curr_filename
+  echo Calling graph_experiment with $curr_filename
+  graph_experiment $curr_filename
 done
-echo Calling graph_experiment with $curr_filename
-graph_experiment $curr_filename
 

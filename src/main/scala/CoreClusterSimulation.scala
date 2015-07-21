@@ -964,7 +964,8 @@ case class Job(id: Long,
                workloadName: String,
                cpusPerTask: Double,
                memPerTask: Double,
-               isRigid: Boolean = false) {
+               isRigid: Boolean = false,
+               requestedCores: Double = Int.MaxValue) {
   var unscheduledTasks: Int = numTasks
   // Time, in seconds, this job spent waiting in its scheduler's queue
   var timeInQueueTillFirstScheduled: Double = 0.0
@@ -983,6 +984,11 @@ case class Job(id: Long,
   var numTaskSchedulingAttempts: Long = 0
   var usefulTimeScheduling: Double = 0.0
   var wastedTimeScheduling: Double = 0.0
+
+  // For Spark
+  var scheduledTasks = numTasks - unscheduledTasks
+  var coresGranted = cpusPerTask * scheduledTasks
+  var coresLeft = requestedCores - coresGranted
 
   def cpusStillNeeded: Double = cpusPerTask * unscheduledTasks
   def memStillNeeded: Double = memPerTask * unscheduledTasks
@@ -1634,7 +1640,8 @@ class TraceAllWLGenerator(val workloadName: String,
                        jobDurationTraceFileName: String,
                        prefillTraceFileName: String,
                        maxCpusPerTask: Double,
-                       maxMemPerTask: Double)
+                       maxMemPerTask: Double,
+                       maxJobsPerWorkload: Int = 10)
                       extends WorkloadGenerator {
   assert(workloadName.equals("Batch") || workloadName.equals("Service"))
   // Build the distributions from the input trace textfile that we'll
@@ -1724,7 +1731,7 @@ class TraceAllWLGenerator(val workloadName: String,
     var nextJobSubmissionTime = getQuantile(interarrivalDist,
                                             randomNumberGenerator.nextFloat)
     var numJobs = 0
-    while (nextJobSubmissionTime < timeWindow) {
+    while (nextJobSubmissionTime < timeWindow && numJobs < maxJobsPerWorkload) {
       val job = newJob(nextJobSubmissionTime)
       assert(job.workloadName == workload.name)
       workload.addJob(job)

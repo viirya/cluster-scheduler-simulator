@@ -38,6 +38,9 @@ import ClusterSchedulingSimulation.Workloads._
 import ClusterSchedulingSimulation.MonolithicScheduler
 import ClusterSchedulingSimulation.MonolithicSimulatorDesc
 
+import ClusterSchedulingSimulation.SparkScheduler
+import ClusterSchedulingSimulation.SparkSimulatorDesc
+
 import ClusterSchedulingSimulation.MesosSchedulerDesc
 import ClusterSchedulingSimulation.MesosSimulatorDesc
 
@@ -87,7 +90,13 @@ object Simulation {
         name = "Monolithic".intern(),
         constantThinkTimes = Map("Batch" -> 0.01, "Service" -> 0.01),
         perTaskThinkTimes = Map("Batch" -> 0.005, "Service" -> 0.01))
-
+ 
+     // Spark
+    var sparkSchedulerDesc = new SchedulerDesc(
+        name = "Spark".intern(),
+        constantThinkTimes = Map("Batch" -> 0.01, "Service" -> 0.01),
+        perTaskThinkTimes = Map("Batch" -> 0.005, "Service" -> 0.01))
+ 
     // Mesos
     var mesosBatchSchedulerDesc = new MesosSchedulerDesc(
         name = "MesosBatch".intern(),
@@ -156,7 +165,11 @@ object Simulation {
      var monolithicSchedulerWorkloadMap =
          Map[String, Seq[String]]("Batch" -> Seq("Monolithic"),
                              "Service" -> Seq("Monolithic"))
-
+ 
+     var sparkSchedulerWorkloadMap =
+         Map[String, Seq[String]]("Batch" -> Seq("Spark"),
+                             "Service" -> Seq("Spark"))
+ 
      var mesos1BatchSchedulerWorkloadMap =
          Map[String, Seq[String]]("Batch" -> Seq("MesosBatch"),
                              "Service" -> Seq("MesosService"))
@@ -221,7 +234,11 @@ object Simulation {
     val monolithicSimulatorDesc =
         new MonolithicSimulatorDesc(Array(monolithicSchedulerDesc),
                                           globalRunTime)
-
+ 
+    val sparkSimulatorDesc =
+        new SparkSimulatorDesc(Array(sparkSchedulerDesc),
+                                          globalRunTime)
+ 
     val mesosSimulator1BatchDesc =
         new MesosSimulatorDesc(mesosSchedulerDescs,
                                runTime = globalRunTime,
@@ -374,9 +391,10 @@ object Simulation {
     // val mesosWorkloadToSweep = "Batch"
     val mesosWorkloadToSweep = "Service"
 
-    val runMonolithic = true
-    val runMesos = true
-    val runOmega = true
+    val runMonolithic = false
+    val runSpark = true
+    val runMesos = false
+    val runOmega = false
 
     val constantRange = (0.1 :: 1.0 :: 10.0 :: Nil)
     // val constantRange = medConstantRange
@@ -643,9 +661,9 @@ object Simulation {
       // Loop over both a single and multi path Monolithic scheduler.
       // Emulate a single path scheduler by making the parameter sweep
       // apply to both the "Service" and "Batch" workload types for it.
-      val multiPathSetup = ("multi", Map("Monolithic" -> List("Service")))
-      val singlePathSetup =
-          ("single", Map("Monolithic" -> List("Service", "Batch")))
+      val singlePathSetup = ("single", Map("Monolithic" -> List("Service")))
+      val multiPathSetup =
+          ("multi", Map("Monolithic" -> List("Service", "Batch")))
       List(singlePathSetup, multiPathSetup).foreach {
            case (multiOrSingle, schedulerWorkloadsMap) => {
         if (sweepC) {
@@ -741,7 +759,107 @@ object Simulation {
       }}
     }
 
-          
+    if (runSpark) {
+      // Loop over both a single and multi path Monolithic scheduler.
+      // Emulate a single path scheduler by making the parameter sweep
+      // apply to both the "Service" and "Batch" workload types for it.
+      val singlePathSetup = ("single", Map("Spark" -> List("Service")))
+      //val multiPathSetup =
+      //    ("multi", Map("Spark" -> List("Service", "Batch")))
+      List(singlePathSetup).foreach {
+           case (multiOrSingle, schedulerWorkloadsMap) => {
+        if (sweepC) {
+          allExperiments ::= new Experiment(
+              name = "google-spark-%s_path-vary_c"
+                     .format(multiOrSingle),
+              workloadToSweepOver = "Service",
+              workloadDescs = wlDescs,
+              schedulerWorkloadsToSweepOver = schedulerWorkloadsMap,
+              constantThinkTimeRange = constantRange,
+              perTaskThinkTimeRange = (0.005 :: Nil),
+              blackListPercentRange = (0.0 :: Nil),
+              schedulerWorkloadMap = sparkSchedulerWorkloadMap,
+              simulatorDesc = sparkSimulatorDesc,
+              logging = doLogging,
+              outputDirectory = outputDirName,
+              prefillCpuLimits = prefillCpuLim,
+              simulationTimeout = timeout)
+        }
+
+        if (sweepCL) {
+          allExperiments ::= new Experiment(
+              name = "google-spark-%s_path-vary_cl"
+                     .format(multiOrSingle),
+              workloadToSweepOver = "Service",
+              workloadDescs = wlDescs,
+              schedulerWorkloadsToSweepOver = schedulerWorkloadsMap,
+              constantThinkTimeRange = constantRange,
+              perTaskThinkTimeRange = perTaskRange,
+              blackListPercentRange = (0.0 :: Nil),
+              schedulerWorkloadMap = sparkSchedulerWorkloadMap,
+              simulatorDesc = sparkSimulatorDesc,
+              logging = doLogging,
+              outputDirectory = outputDirName,
+              prefillCpuLimits = prefillCpuLim,
+              simulationTimeout = timeout)
+        }
+
+        if (sweepL) {
+          allExperiments ::= new Experiment(
+              name = "google-spark-%s_path-vary_l"
+                     .format(multiOrSingle),
+              workloadToSweepOver = "Service",
+              workloadDescs = wlDescs,
+              schedulerWorkloadsToSweepOver = schedulerWorkloadsMap,
+              constantThinkTimeRange = (0.1 :: Nil),
+              perTaskThinkTimeRange = perTaskRange,
+              blackListPercentRange = (0.0 :: Nil),
+              schedulerWorkloadMap = sparkSchedulerWorkloadMap,
+              simulatorDesc = sparkSimulatorDesc,
+              logging = doLogging,
+              outputDirectory = outputDirName,
+              prefillCpuLimits = prefillCpuLim,
+              simulationTimeout = timeout)
+        }
+
+        if (sweepPickiness) {
+          allExperiments ::= new Experiment(
+              name = "google-spark-%s_path-vary_pickiness"
+                     .format(multiOrSingle),
+              workloadToSweepOver = "Service",
+              workloadDescs = wlDescs,
+              schedulerWorkloadsToSweepOver = schedulerWorkloadsMap,
+              constantThinkTimeRange = (0.1 :: Nil),
+              perTaskThinkTimeRange = (0.005 :: Nil),
+              blackListPercentRange = pickinessRange,
+              schedulerWorkloadMap = sparkSchedulerWorkloadMap,
+              simulatorDesc = sparkSimulatorDesc,
+              logging = doLogging,
+              outputDirectory = outputDirName,
+              prefillCpuLimits = prefillCpuLim,
+              simulationTimeout = timeout)
+        }
+
+        if (sweepLambda) {
+          allExperiments ::= new Experiment(
+              name = "google-spark-%s_path-vary_lambda"
+                     .format(multiOrSingle),
+              workloadToSweepOver = "Service",
+              workloadDescs = wlDescs,
+              schedulerWorkloadsToSweepOver = schedulerWorkloadsMap,
+              avgJobInterarrivalTimeRange = Some(interArrivalScaleRange),
+              constantThinkTimeRange = (0.1 :: Nil),
+              perTaskThinkTimeRange = (0.005 :: Nil),
+              blackListPercentRange = (0.0 :: Nil),
+              schedulerWorkloadMap = sparkSchedulerWorkloadMap,
+              simulatorDesc = sparkSimulatorDesc,
+              logging = doLogging,
+              outputDirectory = outputDirName,
+              prefillCpuLimits = prefillCpuLim,
+              simulationTimeout = timeout)
+        }
+      }}
+    }         
     /* Make a snapshot of the source file that has our settings in it */
     println("Making a copy of Simulation.scala in %s"
             .format(outputDirName))
