@@ -33,7 +33,7 @@ import scala.collection.mutable.HashMap
  * to create and also to carry any extra fields that the factory needs to
  * construct the simulator.
  */
-class SparkSimulatorDesc(schedulerDescs: Seq[SchedulerDesc],
+class NewSparkSimulatorDesc(schedulerDescs: Seq[SchedulerDesc],
                               runTime: Double)
                              extends ClusterSimulatorDesc(runTime){
   override
@@ -67,7 +67,7 @@ class SparkSimulatorDesc(schedulerDescs: Seq[SchedulerDesc],
         })
       }
       schedulers(schedDesc.name) =
-          new SparkScheduler(schedDesc.name,
+          new NewSparkScheduler(schedDesc.name,
                                   constantThinkTimes.toMap,
                                   perTaskThinkTimes.toMap,
                                   math.floor(newBlackListPercent *
@@ -89,10 +89,11 @@ class SparkSimulatorDesc(schedulerDescs: Seq[SchedulerDesc],
   }
 }
 
-class SparkScheduler(name: String,
+class NewSparkScheduler(name: String,
                           constantThinkTimes: Map[String, Double],
                           perTaskThinkTimes: Map[String, Double],
-                          numMachinesToBlackList: Double = 0)
+                          numMachinesToBlackList: Double = 0,
+                          maxCoresPerJob: Double = 20)
                          extends Scheduler(name,
                                            constantThinkTimes,
                                            perTaskThinkTimes,
@@ -141,6 +142,10 @@ class SparkScheduler(name: String,
                        "pendingQueue.").format(name, job.id))
         job.numSchedulingAttempts += 1
         job.numTaskSchedulingAttempts += job.unscheduledTasks
+
+        // manually modify job's requestedCores
+        job.requestedCores = maxCoresPerJob
+    
         val claimDeltas = scheduleJob(job, simulator.cellState)
         if(claimDeltas.length > 0) {
           simulator.cellState.scheduleEndEvents(claimDeltas)
@@ -266,19 +271,15 @@ class SparkScheduler(name: String,
       if (cellState.availableCpusPerMachine(currMachID) >= job.cpusPerTask &&
           cellState.availableMemPerMachine(currMachID) >= job.memPerTask) {
         assert(currMachID >= 0 && currMachID < cellState.machineSeqNums.length)
-        val locked = if (job.unscheduledTasks > 0) false else true
 
         val claimDelta = new ClaimDelta(this,
                                         currMachID,
                                         cellState.machineSeqNums(currMachID),
                                         job.taskDuration,
                                         job.cpusPerTask,
-                                        job.memPerTask,
-                                        locked)
-        claimDelta.apply(cellState = cellState, locked = locked)
-        if (!locked) {
-          job.unscheduledTasks -= 1
-        }
+                                        job.memPerTask)
+        claimDelta.apply(cellState = cellState, locked = false)
+        job.unscheduledTasks -= 1
         claimDeltas += claimDelta
       } else {
         failedFindVictimAttempts += 1

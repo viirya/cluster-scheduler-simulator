@@ -41,6 +41,9 @@ import ClusterSchedulingSimulation.MonolithicSimulatorDesc
 import ClusterSchedulingSimulation.SparkScheduler
 import ClusterSchedulingSimulation.SparkSimulatorDesc
 
+import ClusterSchedulingSimulation.NewSparkScheduler
+import ClusterSchedulingSimulation.NewSparkSimulatorDesc
+ 
 import ClusterSchedulingSimulation.MesosSchedulerDesc
 import ClusterSchedulingSimulation.MesosSimulatorDesc
 
@@ -94,6 +97,12 @@ object Simulation {
      // Spark
     var sparkSchedulerDesc = new SchedulerDesc(
         name = "Spark".intern(),
+        constantThinkTimes = Map("Batch" -> 0.01, "Service" -> 0.01),
+        perTaskThinkTimes = Map("Batch" -> 0.005, "Service" -> 0.01))
+
+     // New Spark
+    var newsparkSchedulerDesc = new SchedulerDesc(
+        name = "NewSpark".intern(),
         constantThinkTimes = Map("Batch" -> 0.01, "Service" -> 0.01),
         perTaskThinkTimes = Map("Batch" -> 0.005, "Service" -> 0.01))
  
@@ -169,6 +178,10 @@ object Simulation {
      var sparkSchedulerWorkloadMap =
          Map[String, Seq[String]]("Batch" -> Seq("Spark"),
                              "Service" -> Seq("Spark"))
+
+     var newsparkSchedulerWorkloadMap =
+         Map[String, Seq[String]]("Batch" -> Seq("NewSpark"),
+                             "Service" -> Seq("NewSpark"))
  
      var mesos1BatchSchedulerWorkloadMap =
          Map[String, Seq[String]]("Batch" -> Seq("MesosBatch"),
@@ -237,6 +250,10 @@ object Simulation {
  
     val sparkSimulatorDesc =
         new SparkSimulatorDesc(Array(sparkSchedulerDesc),
+                                          globalRunTime)
+ 
+    val newsparkSimulatorDesc =
+        new NewSparkSimulatorDesc(Array(newsparkSchedulerDesc),
                                           globalRunTime)
  
     val mesosSimulator1BatchDesc =
@@ -392,7 +409,8 @@ object Simulation {
     val mesosWorkloadToSweep = "Service"
 
     val runMonolithic = false
-    val runSpark = true
+    val runSpark = false
+    val runNewSpark = true
     val runMesos = false
     val runOmega = false
 
@@ -859,7 +877,109 @@ object Simulation {
               simulationTimeout = timeout)
         }
       }}
-    }         
+    }
+
+    if (runNewSpark) {
+      // Loop over both a single and multi path Monolithic scheduler.
+      // Emulate a single path scheduler by making the parameter sweep
+      // apply to both the "Service" and "Batch" workload types for it.
+      val singlePathSetup = ("single", Map("NewSpark" -> List("Service")))
+      //val multiPathSetup =
+      //    ("multi", Map("Spark" -> List("Service", "Batch")))
+      List(singlePathSetup).foreach {
+           case (multiOrSingle, schedulerWorkloadsMap) => {
+        if (sweepC) {
+          allExperiments ::= new Experiment(
+              name = "google-newspark-%s_path-vary_c"
+                     .format(multiOrSingle),
+              workloadToSweepOver = "Service",
+              workloadDescs = wlDescs,
+              schedulerWorkloadsToSweepOver = schedulerWorkloadsMap,
+              constantThinkTimeRange = constantRange,
+              perTaskThinkTimeRange = (0.005 :: Nil),
+              blackListPercentRange = (0.0 :: Nil),
+              schedulerWorkloadMap = newsparkSchedulerWorkloadMap,
+              simulatorDesc = newsparkSimulatorDesc,
+              logging = doLogging,
+              outputDirectory = outputDirName,
+              prefillCpuLimits = prefillCpuLim,
+              simulationTimeout = timeout)
+        }
+
+        if (sweepCL) {
+          allExperiments ::= new Experiment(
+              name = "google-newspark-%s_path-vary_cl"
+                     .format(multiOrSingle),
+              workloadToSweepOver = "Service",
+              workloadDescs = wlDescs,
+              schedulerWorkloadsToSweepOver = schedulerWorkloadsMap,
+              constantThinkTimeRange = constantRange,
+              perTaskThinkTimeRange = perTaskRange,
+              blackListPercentRange = (0.0 :: Nil),
+              schedulerWorkloadMap = newsparkSchedulerWorkloadMap,
+              simulatorDesc = newsparkSimulatorDesc,
+              logging = doLogging,
+              outputDirectory = outputDirName,
+              prefillCpuLimits = prefillCpuLim,
+              simulationTimeout = timeout)
+        }
+
+        if (sweepL) {
+          allExperiments ::= new Experiment(
+              name = "google-newspark-%s_path-vary_l"
+                     .format(multiOrSingle),
+              workloadToSweepOver = "Service",
+              workloadDescs = wlDescs,
+              schedulerWorkloadsToSweepOver = schedulerWorkloadsMap,
+              constantThinkTimeRange = (0.1 :: Nil),
+              perTaskThinkTimeRange = perTaskRange,
+              blackListPercentRange = (0.0 :: Nil),
+              schedulerWorkloadMap = newsparkSchedulerWorkloadMap,
+              simulatorDesc = newsparkSimulatorDesc,
+              logging = doLogging,
+              outputDirectory = outputDirName,
+              prefillCpuLimits = prefillCpuLim,
+              simulationTimeout = timeout)
+        }
+
+        if (sweepPickiness) {
+          allExperiments ::= new Experiment(
+              name = "google-newspark-%s_path-vary_pickiness"
+                     .format(multiOrSingle),
+              workloadToSweepOver = "Service",
+              workloadDescs = wlDescs,
+              schedulerWorkloadsToSweepOver = schedulerWorkloadsMap,
+              constantThinkTimeRange = (0.1 :: Nil),
+              perTaskThinkTimeRange = (0.005 :: Nil),
+              blackListPercentRange = pickinessRange,
+              schedulerWorkloadMap = newsparkSchedulerWorkloadMap,
+              simulatorDesc = newsparkSimulatorDesc,
+              logging = doLogging,
+              outputDirectory = outputDirName,
+              prefillCpuLimits = prefillCpuLim,
+              simulationTimeout = timeout)
+        }
+
+        if (sweepLambda) {
+          allExperiments ::= new Experiment(
+              name = "google-newspark-%s_path-vary_lambda"
+                     .format(multiOrSingle),
+              workloadToSweepOver = "Service",
+              workloadDescs = wlDescs,
+              schedulerWorkloadsToSweepOver = schedulerWorkloadsMap,
+              avgJobInterarrivalTimeRange = Some(interArrivalScaleRange),
+              constantThinkTimeRange = (0.1 :: Nil),
+              perTaskThinkTimeRange = (0.005 :: Nil),
+              blackListPercentRange = (0.0 :: Nil),
+              schedulerWorkloadMap = newsparkSchedulerWorkloadMap,
+              simulatorDesc = newsparkSimulatorDesc,
+              logging = doLogging,
+              outputDirectory = outputDirName,
+              prefillCpuLimits = prefillCpuLim,
+              simulationTimeout = timeout)
+        }
+      }}
+    }
     /* Make a snapshot of the source file that has our settings in it */
     println("Making a copy of Simulation.scala in %s"
             .format(outputDirName))

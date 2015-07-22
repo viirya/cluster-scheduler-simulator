@@ -622,7 +622,8 @@ class ClaimDelta(val scheduler: Scheduler,
                  val machineSeqNum: Int,
                  val duration: Double,
                  val cpus: Double,
-                 val mem: Double) {
+                 val mem: Double,
+                 val onlyLocked: Boolean = false) {
   /**
    * Claim {@code cpus} and {@code mem} from {@code cellState}.
    * Increments the sequenceNum of the machine with ID referenced
@@ -636,7 +637,7 @@ class ClaimDelta(val scheduler: Scheduler,
   }
 
   def unApply(cellState: CellState, locked: Boolean = false): Unit = {
-    cellState.freeResources(scheduler, machineID, cpus, mem, locked)
+    cellState.freeResources(scheduler, machineID, cpus, mem, onlyLocked || locked)
   }
 }
 
@@ -964,8 +965,10 @@ case class Job(id: Long,
                workloadName: String,
                cpusPerTask: Double,
                memPerTask: Double,
-               isRigid: Boolean = false,
-               requestedCores: Double = Int.MaxValue) {
+               isRigid: Boolean = false) {
+
+  var requestedCores: Double = Int.MaxValue
+
   var unscheduledTasks: Int = numTasks
   // Time, in seconds, this job spent waiting in its scheduler's queue
   var timeInQueueTillFirstScheduled: Double = 0.0
@@ -986,9 +989,9 @@ case class Job(id: Long,
   var wastedTimeScheduling: Double = 0.0
 
   // For Spark
-  var scheduledTasks = numTasks - unscheduledTasks
-  var coresGranted = cpusPerTask * scheduledTasks
-  var coresLeft = requestedCores - coresGranted
+  def scheduledTasks = numTasks - unscheduledTasks
+  def coresGranted = cpusPerTask * scheduledTasks
+  def coresLeft = requestedCores - coresGranted
 
   def cpusStillNeeded: Double = cpusPerTask * unscheduledTasks
   def memStillNeeded: Double = memPerTask * unscheduledTasks
@@ -1641,7 +1644,7 @@ class TraceAllWLGenerator(val workloadName: String,
                        prefillTraceFileName: String,
                        maxCpusPerTask: Double,
                        maxMemPerTask: Double,
-                       maxJobsPerWorkload: Int = 10)
+                       maxJobsPerWorkload: Int = 10000)
                       extends WorkloadGenerator {
   assert(workloadName.equals("Batch") || workloadName.equals("Service"))
   // Build the distributions from the input trace textfile that we'll
@@ -1701,6 +1704,9 @@ class TraceAllWLGenerator(val workloadName: String,
       memPerTask = 0.7 * getQuantile(memPerTaskDist,
                                randomNumberGenerator.nextFloat).toFloat
     }
+
+    cpusPerTask = 4
+
     // println("cpusPerTask is %f, memPerTask %f.".format(cpusPerTask, memPerTask))
     Job(UniqueIDGenerator.getUniqueID(),
         submissionTime,

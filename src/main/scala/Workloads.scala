@@ -39,7 +39,7 @@ object Workloads {
    * own clusters instead.
    */
   val exampleCellStateDesc = new CellStateDesc(numMachines = 100,
-                                          cpusPerMachine = 4,
+                                          cpusPerMachine = 20,
                                           memPerMachine = 16)
 
 
