@@ -38,7 +38,7 @@ object Workloads {
    * numbers are provided as an example. Enter numbers based on your
    * own clusters instead.
    */
-  val exampleCellStateDesc = new CellStateDesc(numMachines = 100,
+  val exampleCellStateDesc = new CellStateDesc(numMachines = 50,
                                           cpusPerMachine = 20,
                                           memPerMachine = 16)
 
@@ -115,7 +115,7 @@ object Workloads {
           exampleNumTasksTraceFileName,
           exampleJobDurationTraceFileName,
           examplePrefillTraceFileName,
-          maxCpusPerTask = 3.9, // Machines in example cluster have 4 CPUs.
+          maxCpusPerTask = 19.9, // Machines in example cluster have 4 CPUs.
           maxMemPerTask = 15.9) // Machines in example cluster have 16GB mem.
 
   val exampleWorkloadGeneratorTraceAllService =
@@ -125,7 +125,7 @@ object Workloads {
           exampleNumTasksTraceFileName,
           exampleJobDurationTraceFileName,
           examplePrefillTraceFileName,
-          maxCpusPerTask = 3.9,
+          maxCpusPerTask = 19.9,
           maxMemPerTask = 15.9)
 
   val exampleTraceAllWorkloadPrefillDesc =

@@ -243,7 +243,7 @@ object Simulation {
     /**
      * Set up a simulatorDesc-s.
      */
-    val globalRunTime = 86400.0 // 1 Day
+    val globalRunTime = 10000.0 //86400.0 // 1 Day
     val monolithicSimulatorDesc =
         new MonolithicSimulatorDesc(Array(monolithicSchedulerDesc),
                                           globalRunTime)
@@ -409,8 +409,8 @@ object Simulation {
     val mesosWorkloadToSweep = "Service"
 
     val runMonolithic = false
-    val runSpark = false
-    val runNewSpark = true
+    val runSpark = true
+    val runNewSpark = false
     val runMesos = false
     val runOmega = false
 

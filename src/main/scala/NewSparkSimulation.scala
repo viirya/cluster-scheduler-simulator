@@ -93,7 +93,7 @@ class NewSparkScheduler(name: String,
                           constantThinkTimes: Map[String, Double],
                           perTaskThinkTimes: Map[String, Double],
                           numMachinesToBlackList: Double = 0,
-                          maxCoresPerJob: Double = 20)
+                          maxCoresPerJob: Double = 200)
                          extends Scheduler(name,
                                            constantThinkTimes,
                                            perTaskThinkTimes,
@@ -114,8 +114,9 @@ class NewSparkScheduler(name: String,
     job.lastEnqueued = simulator.currentTime
     pendingQueue.enqueue(job)
     simulator.log("enqueued job " + job.id)
-    if (!scheduling)
+    if (!scheduling) {
       scheduleNextJobAction()
+    }
   }
 
   /**
@@ -149,7 +150,7 @@ class NewSparkScheduler(name: String,
         val claimDeltas = scheduleJob(job, simulator.cellState)
         if(claimDeltas.length > 0) {
           simulator.cellState.scheduleEndEvents(claimDeltas)
-          job.unscheduledTasks -= claimDeltas.length
+          //job.unscheduledTasks -= claimDeltas.length
           simulator.log("scheduled %d tasks of job %d's, %d remaining."
                         .format(claimDeltas.length, job.id, job.unscheduledTasks))
           numSuccessfulTransactions += 1
@@ -177,6 +178,7 @@ class NewSparkScheduler(name: String,
                                                      job.memPerTask))
           // Give up on a job if (a) it hasn't scheduled a single task in
           // 100 tries or (b) it hasn't finished scheduling after 1000 tries.
+          /*
           if ((job.numSchedulingAttempts > 100 &&
                job.unscheduledTasks == job.numTasks) ||
               job.numSchedulingAttempts > 1000) {
@@ -194,6 +196,10 @@ class NewSparkScheduler(name: String,
             simulator.afterDelay(1) {
               addJob(job)
             }
+          }
+          */
+          simulator.afterDelay(1) {
+            addJob(job)
           }
         } else {
           // All tasks in job scheduled so don't put it back in pendingQueue.
@@ -259,7 +265,8 @@ class NewSparkScheduler(name: String,
 
     var remainingCandidates =
         math.max(0, cellState.numMachines - numMachinesToBlackList).toInt
-    while(job.coresLeft > 0 && cellState.availableCpus > 0 && remainingCandidates > 0) {
+    while(job.coresLeft > 0 && (job.coresGranted + job.cpusPerTask <= job.requestedCores) &&
+      cellState.availableCpus > 0 && remainingCandidates > 0 && job.unscheduledTasks > 0) {
       // Pick a random machine out of the remaining pool, i.e., out of the set
       // of machineIDs in the first remainingCandidate slots of the candidate
       // pool.

@@ -545,6 +545,7 @@ class Experiment(
                                   "assignment policy: %s \n" +
                                   "runtime: %f \n" +
                                   "avg cpu util: %f \n" +
+                                  "max cpu util: %f \n" +
                                   "avg mem util: %f \n" +
                                   "num workloads %d \n" +
                                   "workload names: %s \n" +
@@ -583,10 +584,9 @@ class Experiment(
                     workloadDesc.cell,                                  // %s
                     workloadDesc.assignmentPolicy,                      // %s
                     simulatorDesc.runTime,                              // %f
-                    simulator.avgCpuUtilization /
-                        simulator.cellState.totalCpus,                  // %f
-                    simulator.avgMemUtilization /
-                        simulator.cellState.totalMem,                   // %f
+                    simulator.avgCpuUtilization,
+                    simulator.cpuUtilization.max,
+                    simulator.avgMemUtilization,
                     workloads.length,                                   // %d
                     workloadNames,                                      // %s
                     numJobs,                                            // %s

@@ -265,6 +265,7 @@ class ClusterSimulator(val cellState: CellState,
   // (i.e. while they are offered as part of a Mesos resource-offer).
   def avgCpuLocked: Double = sumCpuLocked / numMonitoringMeasurements
   def avgMemLocked: Double = sumMemLocked / numMonitoringMeasurements
+  val cpuUtilization: ListBuffer[Double] = ListBuffer()
   var sumCpuUtilization: Double = 0.0
   var sumMemUtilization: Double = 0.0
   var sumCpuLocked: Double = 0.0
@@ -273,8 +274,9 @@ class ClusterSimulator(val cellState: CellState,
 
   def measureUtilization: Unit = {
     numMonitoringMeasurements += 1
-    sumCpuUtilization += cellState.totalOccupiedCpus
-    sumMemUtilization += cellState.totalOccupiedMem
+    sumCpuUtilization += (cellState.totalOccupiedCpus / cellState.totalCpus)
+    cpuUtilization += (cellState.totalOccupiedCpus / cellState.totalCpus)
+    sumMemUtilization += (cellState.totalOccupiedMem / cellState.totalMem)
     sumCpuLocked += cellState.totalLockedCpus
     sumMemLocked += cellState.totalLockedMem
     log("Avg cpu utilization (adding measurement %d of %f): %f."
@@ -991,7 +993,7 @@ case class Job(id: Long,
   // For Spark
   def scheduledTasks = numTasks - unscheduledTasks
   def coresGranted = cpusPerTask * scheduledTasks
-  def coresLeft = requestedCores - coresGranted
+  def coresLeft = math.max(0, requestedCores - coresGranted)
 
   def cpusStillNeeded: Double = cpusPerTask * unscheduledTasks
   def memStillNeeded: Double = memPerTask * unscheduledTasks
@@ -1706,8 +1708,9 @@ class TraceAllWLGenerator(val workloadName: String,
     }
 
     cpusPerTask = 4
+    memPerTask = 4
 
-    // println("cpusPerTask is %f, memPerTask %f.".format(cpusPerTask, memPerTask))
+    //println("cpusPerTask is %f, memPerTask %f.".format(cpusPerTask, memPerTask))
     Job(UniqueIDGenerator.getUniqueID(),
         submissionTime,
         numTasks,
