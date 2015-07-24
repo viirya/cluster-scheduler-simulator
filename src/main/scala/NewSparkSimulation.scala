@@ -93,7 +93,7 @@ class NewSparkScheduler(name: String,
                           constantThinkTimes: Map[String, Double],
                           perTaskThinkTimes: Map[String, Double],
                           numMachinesToBlackList: Double = 0,
-                          maxCoresPerJob: Double = 200)
+                          maxCoresPerJob: Double = Workloads.globalMaxCoresPerJob)
                          extends Scheduler(name,
                                            constantThinkTimes,
                                            perTaskThinkTimes,

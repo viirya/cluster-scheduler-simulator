@@ -33,14 +33,25 @@ import java.io.File
  * In the Eurosys paper, we used measurements from Google clusters here.
  */
 object Workloads {
+
+  val globalMaxCoresPerJob = 20.0 // only used in NewSpark
+  val globalMaxCpusPerTask = 19.9
+  val globalMaxMemPerTask = 15.9
+
+  val globalNumMachines = 150
+  val globalCpusPerMachine = 20
+  val globalMemPerMachine = 16
+
+  val maxTasksPerJob = ((globalNumMachines * globalCpusPerMachine * 1.5) / globalMaxCpusPerTask).toInt
+
   /**
    * Set up CellStateDescs that will go into WorkloadDescs. Fabricated
    * numbers are provided as an example. Enter numbers based on your
    * own clusters instead.
    */
-  val exampleCellStateDesc = new CellStateDesc(numMachines = 50,
-                                          cpusPerMachine = 20,
-                                          memPerMachine = 16)
+  val exampleCellStateDesc = new CellStateDesc(globalNumMachines,
+                                          globalCpusPerMachine,
+                                          globalMemPerMachine)
 
 
   /**
@@ -96,12 +107,12 @@ object Workloads {
 
   // Set up example workload with jobs that have interarrival times
   // from trace-based interarrival times.
-  val exampleInterarrivalTraceFileName = "traces/job-distribution-traces/" +
-      "example_interarrival_cmb.log"
+  val exampleInterarrivalTraceFileName = "script/parsed_data/" +
+      "scheduler_master9b_interarrival_time.log"
   val exampleNumTasksTraceFileName = "traces/job-distribution-traces/" +
-      "example_csizes_cmb.log"
-  val exampleJobDurationTraceFileName = "traces/job-distribution-traces/" +
-      "example_runtimes_cmb.log"
+      "cluster_csizes_cmb.log"
+  val exampleJobDurationTraceFileName = "script/parsed_data/" +
+      "scheduler_master9b_duration.log"
   assert((new File(exampleInterarrivalTraceFileName)).exists())
   assert((new File(exampleNumTasksTraceFileName)).exists())
   assert((new File(exampleJobDurationTraceFileName)).exists())
@@ -115,8 +126,8 @@ object Workloads {
           exampleNumTasksTraceFileName,
           exampleJobDurationTraceFileName,
           examplePrefillTraceFileName,
-          maxCpusPerTask = 19.9, // Machines in example cluster have 4 CPUs.
-          maxMemPerTask = 15.9) // Machines in example cluster have 16GB mem.
+          maxCpusPerTask = globalMaxCpusPerTask, // Machines in example cluster have 4 CPUs.
+          maxMemPerTask = globalMaxMemPerTask) // Machines in example cluster have 16GB mem.
 
   val exampleWorkloadGeneratorTraceAllService =
       new TraceAllWLGenerator(
@@ -125,8 +136,8 @@ object Workloads {
           exampleNumTasksTraceFileName,
           exampleJobDurationTraceFileName,
           examplePrefillTraceFileName,
-          maxCpusPerTask = 19.9,
-          maxMemPerTask = 15.9)
+          maxCpusPerTask = globalMaxCpusPerTask,
+          maxMemPerTask = globalMaxMemPerTask)
 
   val exampleTraceAllWorkloadPrefillDesc =
       WorkloadDesc(cell = "example",

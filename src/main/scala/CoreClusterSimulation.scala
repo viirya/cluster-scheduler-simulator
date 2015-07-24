@@ -1653,8 +1653,15 @@ class TraceAllWLGenerator(val workloadName: String,
   // use to generate random job interarrival times.
   var interarrivalDist: Array[Double] =
       DistCache.getDistribution(workloadName, interarrivalTraceFileName)
+  /*
   var tasksPerJobDist: Array[Double] =
       DistCache.getDistribution(workloadName, tasksPerJobTraceFileName)
+  */
+
+  var tasksPerJobDist: Array[Double] =
+      (1 until Workloads.maxTasksPerJob).toArray.map(_.toDouble)
+
+
   var jobDurationDist: Array[Double] =
       DistCache.getDistribution(workloadName, jobDurationTraceFileName)
   val cpusPerTaskDist: Array[Double] =

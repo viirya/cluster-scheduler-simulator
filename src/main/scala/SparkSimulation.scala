@@ -172,6 +172,7 @@ class SparkScheduler(name: String,
                                                      job.memPerTask))
           // Give up on a job if (a) it hasn't scheduled a single task in
           // 100 tries or (b) it hasn't finished scheduling after 1000 tries.
+          /*
           if ((job.numSchedulingAttempts > 100 &&
                job.unscheduledTasks == job.numTasks) ||
               job.numSchedulingAttempts > 1000) {
@@ -189,6 +190,10 @@ class SparkScheduler(name: String,
             simulator.afterDelay(1) {
               addJob(job)
             }
+          }
+          */
+          simulator.afterDelay(1) {
+            addJob(job)
           }
         } else {
           // All tasks in job scheduled so don't put it back in pendingQueue.
