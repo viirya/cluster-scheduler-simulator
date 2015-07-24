@@ -1740,18 +1740,22 @@ class TraceAllWLGenerator(val workloadName: String,
     var nextJobSubmissionTime = getQuantile(interarrivalDist,
                                             randomNumberGenerator.nextFloat)
     var numJobs = 0
-    while (nextJobSubmissionTime < timeWindow && numJobs < maxJobsPerWorkload) {
-      val job = newJob(nextJobSubmissionTime)
-      assert(job.workloadName == workload.name)
-      workload.addJob(job)
+    while (numJobs < maxJobsPerWorkload) {
+      if (nextJobSubmissionTime < timeWindow) {
+        val job = newJob(nextJobSubmissionTime)
+        assert(job.workloadName == workload.name)
+        workload.addJob(job)
+        numJobs += 1
+      }
       // For this type of WorkloadGenerator in which interarrival rate is
       // sampled from an empirical distribution, the
       // updatedAvgJobInterarrivalTime parameter represents a scaling factor
       // for the value sampled from the distribution.
-      nextJobSubmissionTime += updatedAvgJobInterarrivalTime.getOrElse(1.0) *
+      val newinterArrivalTime = updatedAvgJobInterarrivalTime.getOrElse(1.0) *
                                getQuantile(interarrivalDist,
                                            randomNumberGenerator.nextFloat)
-      numJobs += 1
+      if (newinterArrivalTime + nextJobSubmissionTime < timeWindow)
+        nextJobSubmissionTime += newinterArrivalTime
     }
     assert(numJobs == workload.numJobs)
     workload
